@@ -265,6 +265,7 @@ def get_args():
 
 
 def main(args):
+    print(args)
     utils.init_distributed_mode(args)
     device = torch.device(args.device)
 
@@ -297,6 +298,8 @@ def main(args):
     else:
         raise ValueError(f"Invalid aug: {args.aug_name}")
 
+    print('args.all_domains =',args.all_domains) # ['rgb', 'semseg']
+    
     dataset_train = build_semseg_dataset(args, data_path=args.data_path, transform=train_transform)
     dataset_val = build_semseg_dataset(args, data_path=args.eval_data_path, transform=val_transform, max_images=args.max_val_images)
     if args.test_data_path is not None:
@@ -632,6 +635,8 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module, data_loa
         with torch.cuda.amp.autocast(enabled=fp16):
             preds = model(input_dict, return_all_layers=return_all_layers)
             seg_pred, seg_gt = preds['semseg'], tasks_dict['semseg']
+            # print('seg_pred type = ',seg_pred.shape)
+            # print('seg_gt type = ',seg_gt.shape)
             loss = criterion(seg_pred, seg_gt)
 
         loss_value = loss.item()

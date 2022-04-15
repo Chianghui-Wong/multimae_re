@@ -161,6 +161,7 @@ class DataAugmentationForSemSeg(object):
                 task_dict[task] = task_dict[task].to(torch.float)
             elif task in ['semseg']:
                 img = task_dict[task].to(torch.long)
+                img = img[:,:,0] # for ImageNetS50
                 img = self.seg_adapt_labels(img)
                 task_dict[task] = img
             elif task in ['pseudo_semseg']:
@@ -232,4 +233,9 @@ def nyu_v2_40_classes():
         'ceiling', 'books', 'fridge', 'TV', 'paper', 'towel', 'shower-curtain', 
         'box', 'white-board', 'person', 'night-stand', 'toilet', 'sink', 'lamp',
         'bathtub', 'bag', 'other-struct', 'other-furntr', 'other-prop'
+    ]
+
+def imagenetS50_classes():
+    return [
+        'background','goldfish','tiger shark','goldfinch','tree frog','kuvasz','red fox','siamese cat','american black bear','ladybug','sulphur butterfly','wood rabbit','hamster','wild boar','gibbon','african elephant','giant panda','airliner','ashcan','ballpoint','beach wagon','boathouse','bullet train','cellular telephone','chest','clog','container ship','digital watch','dining table','golf ball','grand piano','iron','lab coat','mixing bowl','motor scooter','padlock','park bench','purse','streetcar','table lamp','television','toilet seat','umbrella','vase','water bottle','water tower','yawl','street sign','lemon','carbonara','agaric'
     ]
