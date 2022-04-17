@@ -321,6 +321,11 @@ def pil_loader(path: str, convert_rgb=True) -> Image.Image:
     # with open(path, 'rb') as f:
     #     img = Image.open(f)
     img = Image.open(path)
+    # if not convert_rgb:
+    #     print('path = ',path)
+    #     # np.set_printoptions(threshold=np.inf)
+    #     print('image = ',np.array(img))
+    #     assert False
     return img.convert('RGB') if convert_rgb else img
 
 

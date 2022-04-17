@@ -13,7 +13,7 @@ import torchvision.transforms as transforms
 import wandb
 
 import utils
-from utils.datasets_semseg import (ade_classes, hypersim_classes,
+from utils.datasets_semseg import (ade_classes, hypersim_classes, imagenetS50_classes,
                                    nyu_v2_40_classes)
 
 
@@ -44,6 +44,8 @@ def log_semseg_wandb(
         classes = hypersim_classes()
     elif dataset_name == 'nyu':
         classes = nyu_v2_40_classes()
+    elif dataset_name == 'imagenetS50':
+        classes = imagenetS50_classes()
     else:
         raise ValueError(f'Dataset {dataset_name} not supported for logging to wandb.')
 

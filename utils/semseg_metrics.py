@@ -87,6 +87,8 @@ def total_intersect_and_union(results,
     """
 
     num_imgs = len(results)
+    # print('gt_seg_maps',len(gt_seg_maps))
+    # print('num_imgs',num_imgs)
     assert len(gt_seg_maps) == num_imgs
     total_area_intersect = np.zeros((num_classes, ), dtype=np.float)
     total_area_union = np.zeros((num_classes, ), dtype=np.float)

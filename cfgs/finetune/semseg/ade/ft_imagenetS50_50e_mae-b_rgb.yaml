@@ -1,7 +1,7 @@
 # imagenetS50 config
 
 # Finetune from:
-finetune: '~/mae_checkpoint/grid_multi.pth' # Change me
+finetune: '~/mae_checkpoint/blockwise_multi.pth' # Change me
 
 # Input tasks
 in_domains: rgb
@@ -17,15 +17,15 @@ decoder_preds_per_patch: 16
 decoder_depth: 4
 
 # Train
-epochs: 32
+epochs: 100
 opt: adamw
 lr: 0.0001 # = 1e-4
 warmup_lr: 0.000001 # = 1e-6
 min_lr: 1e-6
 warmup_epochs: 5
-batch_size: 16
+batch_size: 64
 input_size: 224
-layer_decay: 0.75
+layer_decay: 0.65
 
 # Augmentation
 aug_name: simple
@@ -33,20 +33,21 @@ aug_name: simple
 # Data
 data_path: '/data/imagenet-S/ImageNetS50/semseg/train' # Change me
 eval_data_path: '/data/imagenet-S/ImageNetS50/semseg/val' # Change me
-num_classes: 256
+num_classes: 50
 dataset_name: imagenetS50
 dist_eval: True
-seg_reduce_zero_label: True
+seg_reduce_zero_label: True #认为0是那个空的类，去除0
+seg_use_void_label: False #T：空的类为class数 F：去除
 eval_freq: 1
 
 # Misc.
 find_unused_params: False
 
 # Wandb and logging
-log_wandb: False # Set to True to activate logging to Weights & Biases
+log_wandb: False
 wandb_project: 'multimae-finetune-semseg'
 wandb_entity: null # Change if needed
 wandb_run_name: ft_ade_64e_mae-b_rgb
 log_images_wandb: True
 log_images_freq: 5
-output_dir: 'output/fintune/semseg/imagenetS50/grid' # Change if needed
+output_dir: 'output/fintune/semseg/imagenetS50/' # Change if needed

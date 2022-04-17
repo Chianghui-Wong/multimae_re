@@ -265,7 +265,6 @@ def get_args():
 
 
 def main(args):
-    print(args)
     utils.init_distributed_mode(args)
     device = torch.device(args.device)
 
@@ -521,6 +520,8 @@ def main(args):
             data_loader_train.sampler.set_epoch(epoch)
         if log_writer is not None:
             log_writer.set_step(epoch * num_training_steps_per_epoch)
+
+        # train one epoch
         train_stats = train_one_epoch(
             model=model, criterion=criterion, data_loader=data_loader_train,
             optimizer=optimizer, device=device, epoch=epoch, loss_scaler=loss_scaler,
@@ -536,11 +537,14 @@ def main(args):
 
         if data_loader_val is not None and (epoch % args.eval_freq == 0 or epoch == args.epochs - 1):
             log_images = args.log_wandb and args.log_images_wandb and (epoch % args.log_images_freq == 0)
+            
+            # 评价指标 
             val_stats = evaluate(model=model, criterion=criterion, data_loader=data_loader_val,
                                  device=device, epoch=epoch, in_domains=args.in_domains,
                                  num_classes=args.num_classes, log_images=log_images, 
                                  dataset_name=args.dataset_name, mode='val', fp16=args.fp16,
                                  return_all_layers=return_all_layers)
+                                 
             if max_miou < val_stats["mean_iou"]:
                 max_miou = val_stats["mean_iou"]
                 if args.output_dir and args.save_ckpt:
@@ -635,11 +639,16 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module, data_loa
         with torch.cuda.amp.autocast(enabled=fp16):
             preds = model(input_dict, return_all_layers=return_all_layers)
             seg_pred, seg_gt = preds['semseg'], tasks_dict['semseg']
-            # print('seg_pred type = ',seg_pred.shape)
-            # print('seg_gt type = ',seg_gt.shape)
+            # print('seg_pred.shape = ',seg_pred.shape)
+            # print('seg_gt.shape = ',seg_gt.shape)
+            # [64, 51, 224, 224],[64,224,224]
+            # torch.set_printoptions(profile="full")
+            # print(seg_gt[62])
             loss = criterion(seg_pred, seg_gt)
-
+        
+        # print('loss',loss.shape, loss)
         loss_value = loss.item()
+        # print('loss_value', loss_value)
 
         optimizer.zero_grad()
         # this attribute is added by timm on one optimizer (adahessian)
@@ -734,13 +743,19 @@ def evaluate(model, criterion, data_loader, device, epoch, in_domains, num_class
             preds = model(input_dict, return_all_layers=return_all_layers)
             seg_pred, seg_gt = preds['semseg'], tasks_dict['semseg']
             loss = criterion(seg_pred, seg_gt)
-
+        
+        # print('before extend len of seg_preds is ', len(seg_preds))
+        # print('before extend len of seg_gts is ', len(seg_gts))
         loss_value = loss.item()
         # If there is void, exclude it from the preds and take second highest class
         seg_pred_argmax = seg_pred[:num_classes].argmax(dim=1)
+        print('seg_pred_argmax shape is',seg_pred_argmax.shape)
+
         seg_preds.extend(list(seg_pred_argmax.cpu().numpy()))
         seg_gts.extend(list(seg_gt.cpu().numpy()))
-
+        # print('after extend len of seg_preds is ', len(seg_preds))
+        # print('after extend len of seg_gts is ', len(seg_gts))
+        
         if log_images:
             rgb_gts.extend(tasks_dict['rgb'].cpu().unbind(0))
             seg_preds_with_void.extend(list(seg_pred.argmax(dim=1).cpu().numpy()))
@@ -770,18 +785,22 @@ def evaluate(model, criterion, data_loader, device, epoch, in_domains, num_class
 
 
 def compute_metrics_distributed(seg_preds, seg_gts, size, num_classes, device, ignore_index=utils.SEG_IGNORE_INDEX, dist_on='cpu'):
-
+    
+    # print('len of seg_preds is ', len(seg_preds))
+    # print('len of seg_gts is ', len(seg_gts))
     # Replace void by ignore in gt (void is never counted in mIoU)
     for seg_gt in seg_gts:
         # Void label is equal to num_classes
         seg_gt[seg_gt == num_classes] = ignore_index
 
+    # print('utils.get_world_size() is ',utils.get_world_size())
     # Collect metrics from all devices
     if dist_on == 'cpu':
         all_seg_preds = collect_results_cpu(seg_preds, size, tmpdir=None)
         all_seg_gts = collect_results_cpu(seg_gts, size, tmpdir=None)
     elif dist_on == 'gpu':
         world_size = utils.get_world_size()
+        # print("world_size = ", world_size)
         all_seg_preds = [None for _ in range(world_size)]
         all_seg_gts = [None for _ in range(world_size)]
         # gather all result part
@@ -789,11 +808,17 @@ def compute_metrics_distributed(seg_preds, seg_gts, size, num_classes, device, i
         dist.all_gather_object(all_seg_gts, seg_gts)
 
     ret_metrics_mean = torch.zeros(3, dtype=float, device=device)
-
+    # print('len of all_seg_preds is ', len(all_seg_preds))
+    # print('len of all_seg_gts is ', len(all_seg_gts))
+    
     if utils.is_main_process():
         ordered_seg_preds = [result for result_part in all_seg_preds for result in result_part]
         ordered_seg_gts = [result for result_part in all_seg_gts for result in result_part]
 
+        # print('len of ordered_seg_preds is ', len(ordered_seg_preds))
+        # print('len of ordered_seg_gts is ', len(ordered_seg_gts))
+
+        # 计算指标
         ret_metrics = mean_iou(results=ordered_seg_preds,
                                gt_seg_maps=ordered_seg_gts,
                                num_classes=num_classes,
