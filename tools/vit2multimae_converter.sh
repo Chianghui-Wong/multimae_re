@@ -1,6 +1,6 @@
 #! /bin/zsh
 
-name=('grid')
+name=('baseline')
 
 for i in ${name}; do
     python3 vit2multimae_converter.py \
