@@ -744,17 +744,14 @@ def evaluate(model, criterion, data_loader, device, epoch, in_domains, num_class
             seg_pred, seg_gt = preds['semseg'], tasks_dict['semseg']
             loss = criterion(seg_pred, seg_gt)
         
-        # print('before extend len of seg_preds is ', len(seg_preds))
-        # print('before extend len of seg_gts is ', len(seg_gts))
+
         loss_value = loss.item()
         # If there is void, exclude it from the preds and take second highest class
         seg_pred_argmax = torch.softmax(seg_pred[:,:num_classes], dim=1).argmax(dim=1)
-        # print('seg_pred_argmax shape is',seg_pred_argmax.shape)
 
         seg_preds.extend(list(seg_pred_argmax.cpu().numpy()))
         seg_gts.extend(list(seg_gt.cpu().numpy()))
-        # print('after extend len of seg_preds is ', len(seg_preds))
-        # print('after extend len of seg_gts is ', len(seg_gts))
+
         
         if log_images:
             rgb_gts.extend(tasks_dict['rgb'].cpu().unbind(0))

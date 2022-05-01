@@ -1,10 +1,9 @@
 #! /bin/zsh
 
-echo $(date)
-
-types_name=("random")
+types_name=("blockwise")
+pth_name=("blockwise")
 output_root="./output/fintune/semseg/imagenetS50/"
-date="0419"
+date="0431"
 
 for type in ${types_name}
 do
@@ -19,7 +18,7 @@ do
         mkdir -p ${work_root}
     fi
     
-    nohup sh run_finetuning_semseg.sh ${type} ${work_root}> ${work_root}nohup.out 2>&1
+    nohup sh run_finetuning_semseg.sh ${pth_name} ${work_root}> ${work_root}nohup.out 2>&1
 done
 
 echo "finished"
