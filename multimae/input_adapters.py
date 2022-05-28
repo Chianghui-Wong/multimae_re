@@ -107,7 +107,9 @@ class PatchedInputAdapter(nn.Module):
         N_H, N_W = H // self.P_H, W // self.P_W # Number of patches in height and width
 
         # Create patches [B, C, H, W] -> [B, (H*W), C]
+        # print('[rgb] before patch x is', x.size()) #debug
         x_patch = rearrange(self.proj(x), 'b d nh nw -> b (nh nw) d')
+        # print('[rgb] after patch x is', x.size()) #debug
 
         # Create positional embedding
         x_pos_emb = F.interpolate(self.pos_emb, size=(N_H, N_W), mode='bicubic', align_corners=False)
@@ -159,7 +161,7 @@ class SemSegInputAdapter(nn.Module):
         self.learnable_pos_emb = learnable_pos_emb
         self.image_size = pair(image_size)
         self.dim_class_emb = dim_class_emb
-        self.interpolate_class_emb = interpolate_class_emb
+        self.interpolate_class_emb = interpolate_class_emb #
         self.emb_padding_idx = emb_padding_idx
         if self.emb_padding_idx is not None:
             self.num_classes += 1
@@ -226,9 +228,13 @@ class SemSegInputAdapter(nn.Module):
         N_H, N_W = H // self.P_H, W // self.P_W  # Number of patches in height and width
 
         # Map to embedding
-        x = rearrange(self.class_emb(x), 'b nh nw c -> b c nh nw')
+        # print("[semseg] x before class_emb size",x.size()) #debug
 
-        # Create patches [B, C, H, W] -> [B, (H*W), C]
+        x_class_emb = self.class_emb(x)  
+        
+        x = rearrange(x_class_emb, 'b nh nw c -> b c nh nw') # c=64
+        # Create patches [B, C, H, W] -> [B, (H*W), C] # here
+
         x_patch = rearrange(self.proj(x), 'b d nh nw -> b (nh nw) d')
 
         # Create positional embedding

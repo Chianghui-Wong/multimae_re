@@ -16,13 +16,14 @@ import os
 import random
 
 import numpy as np
+from PIL import Image
 import torch
 import torchvision.transforms.functional as TF
 from torchvision import datasets, transforms
 
 from utils import create_transform
 
-from .data_constants import (IMAGE_TASKS, IMAGENET_DEFAULT_MEAN,
+from .data_constants import (COCO_SEMSEG_NUM_CLASSES, IMAGE_TASKS, IMAGENET_DEFAULT_MEAN,
                              IMAGENET_DEFAULT_STD, IMAGENET_INCEPTION_MEAN,
                              IMAGENET_INCEPTION_STD)
 from .dataset_folder import ImageFolder, MultiTaskImageFolder
@@ -102,9 +103,12 @@ class DataAugmentationForMultiMAE(object):
                 # TODO: add this to a config instead
                 # Rescale to 0.25x size (stride 4)
                 scale_factor = 0.25
+                # scale_factor = 1
                 img = task_dict[task].resize((int(self.input_size * scale_factor), int(self.input_size * scale_factor)))
                 # Using pil_to_tensor keeps it in uint8, to_tensor converts it to float (rescaled to [0, 1])
+                
                 img = TF.pil_to_tensor(img).to(torch.long).squeeze(0)
+                img[img > 132] = 132
                 
             task_dict[task] = img
         

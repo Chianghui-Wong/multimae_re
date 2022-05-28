@@ -1,24 +1,21 @@
 #! /bin/zsh
 
-types_name=("blockwise")
-pth_name=("blockwise")
-output_root="./output/fintune/semseg/imagenetS50/"
-date="0431"
+gpu_node=${1:-"2,3"}
+type=${2:-"cls"}
+finetune_pth=${3:-"/home/jhwang/mae_checkpoint/rgb_depth.pth"}
 
-for type in ${types_name}
-do
-    work_root="${output_root}${type}/${date}/"
-    echo "start at ${type}"
-    
-    if [ ! -d ${work_root} ]
-    then
-        mkdir -p ${work_root}
-    else
-        rm -rf ${work_root}
-        mkdir -p ${work_root}
-    fi
-    
-    nohup sh run_finetuning_semseg.sh ${pth_name} ${work_root}> ${work_root}nohup.out 2>&1
-done
+echo $gpu_node $type $finetune_pth
 
-echo "finished"
+timestamp=`date "+%m-%d-%H%M%S"`
+output_dir="output/finetune/${type}/${timestamp}/"
+
+# mae-b_dec512d8b_1600e_multivit-c477195b.pth
+# multimae-b_98_rgb+-depth-semseg_1600e_multivit-afff3f8c.pth
+# baseline.pth 
+# rgb_depth.pth
+
+mkdir -p ${output_dir}
+
+nohup zsh run_finetuning_${type}.sh ${gpu_node} ${output_dir} ${finetune_pth} > ${output_dir}nohup 2>&1 &
+
+echo "start sh finshed"

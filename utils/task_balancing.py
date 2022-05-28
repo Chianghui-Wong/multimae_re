@@ -6,6 +6,7 @@
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class NoWeightingStrategy(nn.Module):
@@ -17,6 +18,28 @@ class NoWeightingStrategy(nn.Module):
 
     def forward(self, task_losses):
         return task_losses
+
+class SoftmaxWeightingStrategy(nn.Module):
+    """softmax weighting strategy
+    """
+
+    def __init__(self, tasks):
+        super(SoftmaxWeightingStrategy, self).__init__()
+
+        self.tasks = tasks
+
+    def forward(self, task_losses):
+        losses_tensor = torch.stack(list(task_losses.values()))
+        non_zero_losses_mask = (losses_tensor != 0.0)
+
+        weight = F.softmax(losses_tensor, dim=0) * losses_tensor
+
+        weight *= non_zero_losses_mask
+
+        weighted_task_losses = task_losses.copy()
+        weighted_task_losses.update(zip(weighted_task_losses, weight))
+
+        return weighted_task_losses
 
 class UncertaintyWeightingStrategy(nn.Module):
     """Uncertainty weighting strategy
@@ -33,6 +56,8 @@ class UncertaintyWeightingStrategy(nn.Module):
         non_zero_losses_mask = (losses_tensor != 0.0)
 
         # calculate weighted losses
+        # debug
+
         losses_tensor = torch.exp(-self.log_vars) * losses_tensor + self.log_vars
 
         # if some loss was 0 (i.e. task was dropped), weighted loss should also be 0 and not just log_var as no information was gained

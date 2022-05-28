@@ -1,3 +1,4 @@
+
 # Copyright (c) EPFL VILAB.
 # All rights reserved.
 
@@ -32,6 +33,7 @@ import yaml
 from einops import rearrange
 
 import utils
+from utils import task_balancing
 import utils.data_constants as data_constants
 from multimae import multimae
 from multimae.criterion import (MaskedCrossEntropyLoss, MaskedL1Loss,
@@ -44,7 +46,8 @@ from utils.data_constants import COCO_SEMSEG_NUM_CLASSES
 from utils.datasets import build_multimae_pretraining_dataset
 from utils.optim_factory import create_optimizer
 from utils.task_balancing import (NoWeightingStrategy,
-                                  UncertaintyWeightingStrategy)
+                                  UncertaintyWeightingStrategy,
+                                  SoftmaxWeightingStrategy)
 
 DOMAIN_CONF = {
     'rgb': {
@@ -64,11 +67,19 @@ DOMAIN_CONF = {
     'semseg': {
         'num_classes': 133,
         'stride_level': 4,
-        'input_adapter': partial(SemSegInputAdapter, num_classes=COCO_SEMSEG_NUM_CLASSES,
+        'input_adapter': partial(SemSegInputAdapter,                        num_classes=COCO_SEMSEG_NUM_CLASSES,
                                  dim_class_emb=64, interpolate_class_emb=False),
         'output_adapter': partial(SpatialOutputAdapter, num_channels=COCO_SEMSEG_NUM_CLASSES),
         'loss': partial(MaskedCrossEntropyLoss, label_smoothing=0.0),
     },
+    # 'semseg': {
+    #     'num_classes': 133,
+    #     'stride_level': 1,
+    #     'channels': 1,
+    #     'input_adapter': partial(PatchedInputAdapter, num_channels=1),
+    #     'output_adapter': partial(SpatialOutputAdapter, num_channels=COCO_SEMSEG_NUM_CLASSES),
+    #     'loss': partial(MaskedCrossEntropyLoss, label_smoothing=0.0),
+    # },
 }
 
 
@@ -160,7 +171,7 @@ def get_args():
     parser.add_argument('--min_lr', type=float, default=0., metavar='LR',
                         help='Lower lr bound for cyclic schedulers that hit 0 (default: %(default)s)')
     parser.add_argument('--task_balancer', type=str, default='none',
-                        help='Task balancing scheme. One out of [uncertainty, none] (default: %(default)s)')
+                        help='Task balancing scheme. One out of [uncertainty, softmax, none] (default: %(default)s)')
     parser.add_argument('--balancer_lr_scale', type=float, default=1.0,
                         help='Task loss balancer LR scale (if used) (default: %(default)s)')
 
@@ -315,6 +326,8 @@ def main(args):
 
     if args.task_balancer == 'uncertainty':
         loss_balancer = UncertaintyWeightingStrategy(tasks=args.out_domains)
+    elif args.task_balancer == 'softmax':
+        loss_balancer = SoftmaxWeightingStrategy(tasks=args.out_domains)
     else:
         loss_balancer = NoWeightingStrategy()
 
@@ -337,6 +350,9 @@ def main(args):
         global_rank = utils.get_rank()
         sampler_rank = global_rank
         num_training_steps_per_epoch = len(dataset_train) // args.batch_size // num_tasks
+
+        # debug
+        # print('len of the datasets is',len(dataset_train)) # 64431
 
         sampler_train = torch.utils.data.DistributedSampler(
             dataset_train, num_replicas=num_tasks, rank=sampler_rank, shuffle=True, drop_last=True,
@@ -382,7 +398,8 @@ def main(args):
         # model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
         model_without_ddp = model.module
 
-    if args.distributed and args.task_balancer != 'none':
+    task_balancer_need_grad = ['uncertainty']
+    if args.distributed and (args.task_balancer in task_balancer_need_grad):
         loss_balancer = torch.nn.parallel.DistributedDataParallel(loss_balancer, device_ids=[args.gpu])
         loss_balancer_without_ddp = loss_balancer.module
 
@@ -411,6 +428,8 @@ def main(args):
             data_loader_train.sampler.set_epoch(epoch)
         if log_writer is not None:
             log_writer.set_step(epoch * num_training_steps_per_epoch)
+        
+        # train one epoch
         train_stats = train_one_epoch(
             model=model,
             data_loader=data_loader_train,
@@ -435,6 +454,7 @@ def main(args):
             extra_norm_pix_loss=args.extra_norm_pix_loss,
             fp32_output_adapters=args.fp32_output_adapters.split('-')
         )
+
         if log_writer is not None:
             log_writer.update({**{k: v for k, v in train_stats.items()}, 'epoch': epoch})
         if args.output_dir:
@@ -497,14 +517,23 @@ def train_one_epoch(model: torch.nn.Module, data_loader: Iterable, tasks_loss_fn
             if task in in_domains
         }
 
+        # debug
+        # print('rgb =',input_dict['rgb'])
+        # print('rgb size =',input_dict['rgb'].size())
+        # print('semseg = ',input_dict['semseg'])
+        # print('semseg size',input_dict['semseg'].size())
+
         with torch.cuda.amp.autocast():
-            preds, masks = model(
+            preds, masks = model( # here
                 input_dict, 
                 num_encoded_tokens=num_encoded_tokens, 
                 alphas=alphas, 
                 sample_tasks_uniformly=sample_tasks_uniformly,
                 fp32_output_adapters=fp32_output_adapters
             )
+
+            # print("preds =", preds)
+            # print("masks =", masks)
 
             if extra_norm_pix_loss:
                 tasks_dict['norm_rgb'] = tasks_dict['rgb']

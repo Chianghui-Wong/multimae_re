@@ -22,8 +22,8 @@ opt: adamw
 lr: 0.0001 # = 1e-4
 warmup_lr: 0.000001 # = 1e-6
 min_lr: 1e-6
-warmup_epochs: 40
-batch_size: 50
+warmup_epochs: 20
+batch_size: 64
 input_size: 224
 layer_decay: 0.65
 

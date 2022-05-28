@@ -310,7 +310,7 @@ class MultiMAE(nn.Module):
 
         # Encode selected inputs to tokens
         input_task_tokens = {
-            domain: self.input_adapters[domain](tensor)
+            domain: self.input_adapters[domain](tensor) # here
             for domain, tensor in x.items()
             if domain in self.input_adapters
         }
