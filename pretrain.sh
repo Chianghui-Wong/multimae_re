@@ -1,6 +1,6 @@
 #! /bin/zsh
 
-gpu_node="0,1,2,3,4"
+gpu_node="0,1,2,3,4,5"
 
 timestamp=`date "+%m-%d-%H%M%S"`
 output_dir="output/pretrain/${timestamp}/"
