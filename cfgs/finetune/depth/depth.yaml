@@ -5,7 +5,7 @@ finetune: '/path/to/pretrained_weights' # Change me
 
 # Input tasks
 in_domains: rgb
-use_mask_valid: True # Requires "task" mask_valid to be saved to disk
+use_mask_valid: False # Requires "task" mask_valid to be saved to disk
 
 # Architecture
 model: multivit_base
@@ -22,17 +22,17 @@ lr: 0.0001 # = 1e-4
 warmup_lr: 0.000001 # = 1e-6
 min_lr: 0.
 warmup_epochs: 100
-batch_size: 32
+batch_size: 24
 input_size: 256
-layer_decay: 0.75
+layer_decay: 0.65
 weight_decay: 0.0001 # 1e-4
 
 # Augmentation
 aug_name: nyu-augs
 
 # Data info
-data_path: '/data/finetune-nyu' # Change me
-eval_data_path: '/data/finetune-nyu' # Change me
+data_path: '/data/nyu-ft/train' # Change me
+eval_data_path: '/data/nyu-ft/eval' # Change me
 color_augs: True
 dataset_name: nyu
 dist_eval: True
@@ -46,7 +46,7 @@ find_unused_params: True
 log_wandb: True # Set to True to log to Weights & Biases
 wandb_project: 'multimae-finetune-depth'
 wandb_entity: null # Change if needed
-wandb_run_name: 'ft_nyu_2000e_mae-b'
+wandb_run_name: 'sfm-depth'
 log_images_wandb: True
 log_images_freq: 250
 output_dir: '/output/finetune/depth/ft_nyu_2000e_mae-b' # Change if needed

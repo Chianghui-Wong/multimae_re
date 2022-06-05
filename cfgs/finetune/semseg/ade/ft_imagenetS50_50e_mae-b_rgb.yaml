@@ -47,7 +47,7 @@ find_unused_params: False
 log_wandb: True
 wandb_project: 'multimae-finetune-semseg'
 wandb_entity: null # Change if needed
-wandb_run_name: ft_semseg-sfm
+wandb_run_name: ft_semseg-uncertainty
 log_images_wandb: True
 log_images_freq: 5
 output_dir: 'output/fintune/semseg/imagenetS50/' # Change if needed

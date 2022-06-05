@@ -1,8 +1,8 @@
 #! /bin/zsh
 
-gpu_node=${1:-"0"}
-type=${2:-"cls"}
-finetune_pth=${3:-"/home/jhwang/mae_checkpoint/multi_softmax.pth"}
+gpu_node=${1:-"1,2,3,4,5"}
+type=${2:-"depth"}
+finetune_pth=${3:-"/home/jhwang/mae_checkpoint/baseline.pth"}
 
 echo $gpu_node $type $finetune_pth
 
@@ -14,6 +14,7 @@ output_dir="output/finetune/${type}/${timestamp}/"
 # baseline.pth 
 # rgb_depth.pth
 # multi_softmax.pth
+# multi_uncertainty.pth
 
 mkdir -p ${output_dir}
 

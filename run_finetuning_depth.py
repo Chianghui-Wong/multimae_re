@@ -700,14 +700,14 @@ def train_one_epoch(model: torch.nn.Module, tasks_loss_fn: Dict[str, torch.nn.Mo
 
             preds = model(input_dict, return_all_layers=return_all_layers)
             task_losses = {
-                task: tasks_loss_fn[task](preds[task].float(), tasks_dict[task], mask_valid=tasks_dict['mask_valid'])
+                task: tasks_loss_fn[task](preds[task].float(), tasks_dict[task], mask_valid=tasks_dict['mask_valid'] if 'mask_valid' in tasks_dict else None)
                 for task in preds
             }
             loss = sum(task_losses.values())
 
         loss_value = loss.item()
         task_loss_values = {f'{task}_loss': l.item() for task, l in task_losses.items()}
-        metrics = masked_nyu_metrics(preds['depth'], tasks_dict['depth'], mask_valid=tasks_dict['mask_valid'])
+        metrics = masked_nyu_metrics(preds['depth'], tasks_dict['depth'], mask_valid=tasks_dict['mask_valid'] if 'mask_valid' in tasks_dict else None)
 
         if not math.isfinite(loss_value):
             print("Loss is {}, stopping training".format(loss_value))
@@ -835,14 +835,14 @@ def evaluate(model, tasks_loss_fn, data_loader, device, epoch, in_domains,
         with torch.cuda.amp.autocast(enabled=False):
             preds = model(input_dict, return_all_layers=return_all_layers)
             task_losses = {
-                task: tasks_loss_fn[task](preds[task], tasks_dict[task], mask_valid=tasks_dict['mask_valid'])
+                task: tasks_loss_fn[task](preds[task], tasks_dict[task], mask_valid=tasks_dict['mask_valid'] if 'mask_valid' in tasks_dict else None)
                 for task in preds
             }
             loss = sum(task_losses.values())
 
         loss_value = loss.item()
         task_loss_values = {f'{task}_loss': l.item() for task, l in task_losses.items()}
-        metrics = masked_nyu_metrics(preds['depth'], tasks_dict['depth'], mask_valid=tasks_dict['mask_valid'])
+        metrics = masked_nyu_metrics(preds['depth'], tasks_dict['depth'], mask_valid=tasks_dict['mask_valid'] if 'mask_valid' in tasks_dict else None)
 
         metric_logger.update(**metrics)
 
